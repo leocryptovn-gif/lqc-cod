@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Quản lý COD - Nộp tiền theo ngày",
   "dependencies": {
-    "googleapis": "^140.0.0"
+    "googleapis": "^140.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3"
   }
 }
