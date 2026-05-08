@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý COD</title>
+  <style>
+    :root {
+      --primary: #1a73e8; --primary-dark: #1557b0; --primary-light: #e8f0fe;
+      --success: #34a853; --danger: #ea4335; --warning: #fbbc04;
+      --text: #202124; --text-muted: #5f6368; --border: #dadce0;
+      --bg: #f8f9fa; --white: #ffffff;
+      --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Google Sans', Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app-header { background: var(--primary); color: white; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+    .app-header h1 { font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+    .tabs { background: var(--white); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; position: sticky; top: 56px; z-index: 99; }
+    .tab-btn { padding: 14px 20px; font-size: 14px; font-weight: 500; color: var(--text-muted); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .tab-btn:hover { color: var(--primary); background: var(--primary-light); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .content { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .card { background: var(--white); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+    .form-group label span { color: var(--danger); }
+    .form-control { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text); transition: all 0.2s; outline: none; background: var(--white); }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.15); }
+    .form-control::placeholder { color: #aaa; }
+    .btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover:not(:disabled) { background: #2d9249; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover:not(:disabled) { background: #c5221f; }
+    .btn-outline { background: white; color: var(--primary); border: 1px solid var(--primary); }
+    .btn-outline:hover:not(:disabled) { background: var(--primary-light); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .form-actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; align-items: center; gap: 10px; }
+    .alert.show { display: flex; }
+    .alert-success { background: #e6f4ea; color: #137333; border-left: 4px solid var(--success); }
+    .alert-danger { background: #fce8e6; color: #c5221f; border-left: 4px solid var(--danger); }
+    .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; }
+    .filter-bar .form-group { min-width: 160px; }
+    .filter-bar .form-group label { font-size: 12px; }
+    .table-wrapper { overflow-x: auto; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead tr { background: var(--primary); color: white; }
+    thead th { padding: 12px 14px; text-align: left; font-weight: 500; font-size: 13px; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:hover { background: #f0f4ff; }
+    tbody td { padding: 11px 14px; }
+    .amount-cell { font-weight: 600; color: var(--success); }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
+    .empty-state .icon { font-size: 48px; display: block; margin-bottom: 10px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--white); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; }
+    .stat-card .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .stat-value { font-size: 26px; font-weight: 700; }
+    .stat-card .stat-icon { font-size: 28px; }
+    .stat-card.blue { border-top: 4px solid var(--primary); }
+    .stat-card.green { border-top: 4px solid var(--success); }
+    .stat-card.orange { border-top: 4px solid var(--warning); }
+    .chart-bar-wrapper { display: flex; flex-direction: column; gap: 10px; }
+    .chart-bar-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .chart-bar-label { min-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chart-bar-track { flex: 1; height: 22px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.6s ease; }
+    .chart-bar-fill.green { background: var(--success); }
+    .chart-bar-val { min-width: 110px; text-align: right; font-weight: 600; color: var(--text-muted); font-size: 12px; }
+    .rider-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--primary-light); color: var(--primary); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 500; margin: 4px; }
+    .rider-chip button { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 14px; padding: 0; }
+    .rider-chip button:hover { color: var(--danger); }
+    .loading { display: none; text-align: center; padding: 30px; color: var(--text-muted); }
+    .spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--white); border-radius: 12px; padding: 28px; width: 90%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .badge-blue { background: var(--primary-light); color: var(--primary); }
+    .summary-bar { background: #e8f0fe; border-radius: 8px; padding: 10px 16px; margin-bottom: 14px; font-size: 14px; display: flex; gap: 24px; flex-wrap: wrap; }
+    @media (max-width: 640px) {
+      .content { padding: 16px 12px; }
+      .card { padding: 16px; }
+      .app-header h1 { font-size: 15px; }
+      .tabs { padding: 0 8px; }
+      .tab-btn { padding: 12px 10px; font-size: 12px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1><span>📦</span> Quản lý COD</h1>
+  <span style="font-size:13px;opacity:0.8;" id="headerDate"></span>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="switchTab('input',this)">✏️ Nhập COD</button>
+  <button class="tab-btn" onclick="switchTab('data',this)">📋 Dữ liệu</button>
+  <button class="tab-btn" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('riders',this)">🏍️ Riders</button>
+</nav>
+
+<div class="content">
+
+  <!-- TAB 1: NHẬP COD -->
+  <div id="tab-input" class="tab-panel active">
+    <div class="card">
+      <div class="card-title">✏️ Nhập dữ liệu COD mới</div>
+      <div id="alertInput" class="alert"></div>
+      <form id="codForm" onsubmit="submitForm(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Ngày nộp <span>*</span></label>
+            <input type="date" id="inputDate" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Tên Rider <span>*</span></label>
+            <select id="inputRider" class="form-control" required>
+              <option value="">-- Chọn rider --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Số kiện giao <span>*</span></label>
+            <input type="number" id="inputPackages" class="form-control" min="1" placeholder="Nhập số kiện" required>
+          </div>
+          <div class="form-group">
+            <label>Số tiền COD (VNĐ) <span>*</span></label>
+            <input type="number" id="inputAmount" class="form-control" min="0" step="1000" placeholder="Nhập số tiền" required>
+          </div>
+          <div class="form-group full">
+            <label>Ghi chú</label>
+            <input type="text" id="inputNote" class="form-control" placeholder="Ghi chú thêm (tuỳ chọn)">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-success" id="btnSubmit">💾 Lưu bản ghi</button>
+          <button type="button" class="btn btn-outline" onclick="resetForm()">🔄 Nhập lại</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <div class="card-title">🕒 Bản ghi hôm nay</div>
+      <div id="loadingToday" class="loading"><div class="spinner"></div><div>Đang tải...</div></div>
+      <div id="todayTable"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: DỮ LIỆU -->
+  <div id="tab-data" class="tab-panel">
+    <div class="card">
+      <div class="card-title">🔍 Lọc dữ liệu</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>Từ ngày</label>
+          <input type="date" id="filterStart" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Đến ngày</label>
+          <input type="date" id="filterEnd" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Rider</label>
+          <select id="filterRider" class="form-control"><option value="">-- Tất cả --</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">🔍 Lọc</button>
+        <button class="btn btn-outline" onclick="clearFilter()">✕ Xoá lọc</button>
+      </div>
+    </div>
+    <div id="alertData" class="alert"></div>
+    <div class="card">
+      <div class="card-title" id="dataTableTitle">📋 Danh sách bản ghi</div>
+      <div id="loadingData" class="loading"><div class="spinner"></div><div>Đang tải...</div></div>
+      <div id="summaryBarData"></div>
+      <div class="table-wrapper" id="dataTableWrapper">
+        <div class="empty-state"><span class="icon">📋</span>Nhấn "Lọc" để xem dữ liệu</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: DASHBOARD -->
+  <div id="tab-dashboard" class="tab-panel">
+    <div class="card" style="padding:16px 24px;">
+      <div class="filter-bar" style="margin-bottom:0">
+        <div class="form-group">
+          <label>Từ ngày</label>
+          <input type="date" id="dashStart" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Đến ngày</label>
+          <input type="date" id="dashEnd" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Rider</label>
+          <select id="dashRider" class="form-control"><option value="">-- Tất cả --</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadDashboard()">📊 Cập nhật</button>
+        <button class="btn btn-outline" onclick="clearDashFilter()">✕ Xoá lọc</button>
+      </div>
+    </div>
+    <div id="loadingDash" class="loading"><div class="spinner"></div><div>Đang tải...</div></div>
+    <div class="stats-grid">
+      <div class="stat-card blue"><span class="stat-label">Tổng COD nộp</span><span class="stat-value" id="statTotalCOD">--</span><span class="stat-icon">💰</span></div>
+      <div class="stat-card green"><span class="stat-label">Tổng số kiện</span><span class="stat-value" id="statTotalPkg">--</span><span class="stat-icon">📦</span></div>
+      <div class="stat-card orange"><span class="stat-label">Số bản ghi</span><span class="stat-value" id="statTotalRec">--</span><span class="stat-icon">📝</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;">
+      <div class="card"><div class="card-title">🏍️ COD theo Rider</div><div id="chartByRider"><div class="empty-state"><span class="icon">📊</span>Chưa có dữ liệu</div></div></div>
+      <div class="card"><div class="card-title">📅 COD 14 ngày gần nhất</div><div id="chartByDate"><div class="empty-state"><span class="icon">📅</span>Chưa có dữ liệu</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Thống kê chi tiết theo Rider</div>
+      <div class="table-wrapper" id="riderSummaryTable"><div class="empty-state"><span class="icon">📊</span>Chưa có dữ liệu</div></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: RIDERS -->
+  <div id="tab-riders" class="tab-panel">
+    <div class="card">
+      <div class="card-title">🏍️ Quản lý danh sách Rider</div>
+      <div id="alertRider" class="alert"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+        <input type="text" id="newRiderName" class="form-control" placeholder="Nhập tên rider mới..." style="max-width:280px;" onkeydown="if(event.key==='Enter')addRider()">
+        <button class="btn btn-primary" onclick="addRider()">➕ Thêm Rider</button>
+      </div>
+      <div id="riderChips" style="min-height:44px;"><div class="loading" style="display:block;padding:10px;"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Chỉnh sửa bản ghi</div>
+    <input type="hidden" id="editRowIndex">
+    <div class="form-grid">
+      <div class="form-group"><label>Ngày <span style="color:var(--danger)">*</span></label><input type="date" id="editDate" class="form-control" required></div>
+      <div class="form-group"><label>Rider <span style="color:var(--danger)">*</span></label><select id="editRider" class="form-control" required></select></div>
+      <div class="form-group"><label>Số kiện <span style="color:var(--danger)">*</span></label><input type="number" id="editPackages" class="form-control" min="1" required></div>
+      <div class="form-group"><label>Số tiền COD (VNĐ) <span style="color:var(--danger)">*</span></label><input type="number" id="editAmount" class="form-control" min="0" required></div>
+      <div class="form-group full"><label>Ghi chú</label><input type="text" id="editNote" class="form-control"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Hủy</button>
+      <button class="btn btn-success" onclick="saveEdit()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG — tự động dùng /api (Netlify Function)
+  // ============================================================
+  const API = '/api';
+
+  async function apiGet(action, params = {}) {
+    const q = new URLSearchParams({ action, ...params });
+    const res = await fetch(`${API}?${q}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+  async function apiPost(body) {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  // ============================================================
+  var allRiders = [];
+  var currentData = [];
+
+  window.onload = function () {
+    var today = new Date();
+    document.getElementById('headerDate').textContent = fmtDate(today);
+    document.getElementById('inputDate').value = toInputDate(today);
+    loadRiders();
+    loadTodayData();
+  };
+
+  function toInputDate(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function fmtDate(d) { return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); }
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function fmtMoney(n) { return (n||0).toLocaleString('vi-VN')+' ₫'; }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-'+tab).classList.add('active');
+    btn.classList.add('active');
+    if (tab==='data') loadData();
+    if (tab==='dashboard') loadDashboard();
+  }
+
+  function showAlert(id, type, msg) {
+    var el = document.getElementById(id);
+    el.className = 'alert alert-'+type+' show';
+    el.innerHTML = (type==='success'?'✅ ':'❌ ') + esc(msg);
+    setTimeout(()=>el.className='alert', 5000);
+  }
+
+  // ---- RIDERS ----
+  async function loadRiders() {
+    try {
+      allRiders = await apiGet('getRiders');
+      populateSelects();
+      renderChips();
+    } catch(e) { showAlert('alertRider','danger','Lỗi tải riders: '+e.message); }
+  }
+
+  function populateSelects() {
+    ['inputRider','filterRider','dashRider'].forEach(id => {
+      var sel = document.getElementById(id);
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">'+(id==='inputRider'?'-- Chọn rider --':'-- Tất cả --')+'</option>';
+      allRiders.forEach(r => {
+        var o = document.createElement('option'); o.value=r; o.text=r;
+        if (r===cur) o.selected=true;
+        sel.appendChild(o);
+      });
+    });
+  }
+
+  function renderChips() {
+    var c = document.getElementById('riderChips');
+    if (!allRiders.length) { c.innerHTML='<span style="color:#999;font-size:13px;">Chưa có rider nào.</span>'; return; }
+    c.innerHTML = allRiders.map(r =>
+      `<span class="rider-chip">${esc(r)}<button onclick="removeRider('${esc(r)}')" title="Xóa">✕</button></span>`
+    ).join('');
+  }
+
+  async function addRider() {
+    var name = document.getElementById('newRiderName').value.trim();
+    if (!name) { showAlert('alertRider','danger','Vui lòng nhập tên rider.'); return; }
+    try {
+      var res = await apiPost({ action:'addRider', name });
+      if (res.success) { showAlert('alertRider','success',res.message); document.getElementById('newRiderName').value=''; loadRiders(); }
+      else showAlert('alertRider','danger',res.message);
+    } catch(e) { showAlert('alertRider','danger','Lỗi: '+e.message); }
+  }
+
+  async function removeRider(name) {
+    if (!confirm('Xóa rider "'+name+'"?')) return;
+    try {
+      var res = await apiPost({ action:'deleteRider', name });
+      if (res.success) { showAlert('alertRider','success',res.message); loadRiders(); }
+      else showAlert('alertRider','danger',res.message);
+    } catch(e) { showAlert('alertRider','danger','Lỗi: '+e.message); }
+  }
+
+  // ---- FORM NHẬP ----
+  async function submitForm(e) {
+    e.preventDefault();
+    var btn = document.getElementById('btnSubmit');
+    btn.disabled=true; btn.innerHTML='⏳ Đang lưu...';
+    var data = {
+      date: document.getElementById('inputDate').value,
+      rider: document.getElementById('inputRider').value,
+      packages: document.getElementById('inputPackages').value,
+      amount: document.getElementById('inputAmount').value,
+      note: document.getElementById('inputNote').value,
+    };
+    try {
+      var res = await apiPost({ action:'addRecord', data });
+      if (res.success) {
+        showAlert('alertInput','success',res.message);
+        document.getElementById('inputPackages').value='';
+        document.getElementById('inputAmount').value='';
+        document.getElementById('inputNote').value='';
+        loadTodayData();
+      } else showAlert('alertInput','danger',res.message);
+    } catch(e) { showAlert('alertInput','danger','Lỗi: '+e.message); }
+    finally { btn.disabled=false; btn.innerHTML='💾 Lưu bản ghi'; }
+  }
+
+  function resetForm() {
+    ['inputPackages','inputAmount','inputNote'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('inputRider').value='';
+  }
+
+  // ---- TODAY ----
+  async function loadTodayData() {
+    var todayStr = toInputDate(new Date());
+    document.getElementById('loadingToday').style.display='block';
+    document.getElementById('todayTable').innerHTML='';
+    try {
+      var data = await apiGet('getData');
+      currentData = data;
+      document.getElementById('loadingToday').style.display='none';
+      renderTable('todayTable', data.filter(r=>r.dateSort===todayStr), true);
+    } catch(e) { document.getElementById('loadingToday').style.display='none'; }
+  }
+
+  // ---- DATA TAB ----
+  async function loadData() {
+    var filter = {
+      startDate: document.getElementById('filterStart').value,
+      endDate: document.getElementById('filterEnd').value,
+      rider: document.getElementById('filterRider').value,
+    };
+    document.getElementById('loadingData').style.display='block';
+    document.getElementById('dataTableWrapper').innerHTML='';
+    document.getElementById('summaryBarData').innerHTML='';
+    try {
+      var data = await apiGet('getData', filter);
+      currentData = data;
+      document.getElementById('loadingData').style.display='none';
+      document.getElementById('dataTableTitle').textContent='📋 Danh sách bản ghi ('+data.length+')';
+      if (data.length>0) {
+        var totalCOD=data.reduce((s,r)=>s+r.amount,0);
+        var totalPkg=data.reduce((s,r)=>s+r.packages,0);
+        document.getElementById('summaryBarData').innerHTML=
+          `<div class="summary-bar"><span>📊 <strong>${data.length}</strong> bản ghi</span><span>📦 <strong>${totalPkg.toLocaleString('vi-VN')}</strong> kiện</span><span>💰 <strong>${fmtMoney(totalCOD)}</strong> tổng COD</span></div>`;
+      }
+      renderTable('dataTableWrapper', data, false);
+    } catch(e) { document.getElementById('loadingData').style.display='none'; showAlert('alertData','danger','Lỗi: '+e.message); }
+  }
+
+  function clearFilter() {
+    ['filterStart','filterEnd'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('filterRider').value='';
+    loadData();
+  }
+
+  function renderTable(containerId, data, compact) {
+    var c = document.getElementById(containerId);
+    if (!data||!data.length) { c.innerHTML='<div class="empty-state"><span class="icon">📋</span>Không có dữ liệu</div>'; return; }
+    var html = '<table><thead><tr><th>Ngày</th><th>Rider</th><th>Số kiện</th><th>COD (VNĐ)</th>';
+    if (!compact) html+='<th>Ghi chú</th><th>Thời gian nhập</th>';
+    html+='<th>Thao tác</th></tr></thead><tbody>';
+    data.forEach(row => {
+      html+=`<tr><td>${row.date}</td><td><span class="badge badge-blue">${esc(row.rider)}</span></td><td>${row.packages.toLocaleString('vi-VN')}</td><td class="amount-cell">${fmtMoney(row.amount)}</td>`;
+      if (!compact) html+=`<td>${esc(row.note)}</td><td style="font-size:12px;color:#999">${row.timestamp}</td>`;
+      html+=`<td style="white-space:nowrap;"><button class="btn btn-outline btn-sm" onclick="openEdit(${row.rowIndex})">✏️</button> <button class="btn btn-danger btn-sm" onclick="doDelete(${row.rowIndex})">🗑️</button></td></tr>`;
+    });
+    html+='</tbody></table>';
+    c.innerHTML=html;
+  }
+
+  // ---- EDIT / DELETE ----
+  function openEdit(rowIndex) {
+    var row = currentData.find(r=>r.rowIndex===rowIndex);
+    if (!row) return;
+    document.getElementById('editRowIndex').value=row.rowIndex;
+    var p=row.date.split('/');
+    document.getElementById('editDate').value=p[2]+'-'+p[1]+'-'+p[0];
+    document.getElementById('editPackages').value=row.packages;
+    document.getElementById('editAmount').value=row.amount;
+    document.getElementById('editNote').value=row.note||'';
+    var sel=document.getElementById('editRider');
+    sel.innerHTML='';
+    allRiders.forEach(r=>{var o=document.createElement('option');o.value=r;o.text=r;if(r===row.rider)o.selected=true;sel.appendChild(o);});
+    document.getElementById('editModal').classList.add('show');
+  }
+
+  function closeModal() { document.getElementById('editModal').classList.remove('show'); }
+
+  async function saveEdit() {
+    var rowIndex=parseInt(document.getElementById('editRowIndex').value);
+    var data={date:document.getElementById('editDate').value,rider:document.getElementById('editRider').value,packages:document.getElementById('editPackages').value,amount:document.getElementById('editAmount').value,note:document.getElementById('editNote').value};
+    try {
+      var res=await apiPost({action:'updateRecord',rowIndex,data});
+      if(res.success){closeModal();showAlert('alertData','success',res.message);loadData();loadTodayData();}
+      else showAlert('alertData','danger',res.message);
+    } catch(e){showAlert('alertData','danger','Lỗi: '+e.message);}
+  }
+
+  async function doDelete(rowIndex) {
+    if(!confirm('Bạn có chắc muốn xóa bản ghi này không?'))return;
+    try {
+      var res=await apiPost({action:'deleteRecord',rowIndex});
+      if(res.success){showAlert('alertData','success',res.message);loadData();loadTodayData();}
+      else showAlert('alertData','danger',res.message);
+    } catch(e){showAlert('alertData','danger','Lỗi: '+e.message);}
+  }
+
+  // ---- DASHBOARD ----
+  async function loadDashboard() {
+    var filter={startDate:document.getElementById('dashStart').value,endDate:document.getElementById('dashEnd').value,rider:document.getElementById('dashRider').value};
+    document.getElementById('loadingDash').style.display='block';
+    try {
+      var s=await apiGet('getSummary',filter);
+      document.getElementById('loadingDash').style.display='none';
+      renderDashboard(s);
+    } catch(e){document.getElementById('loadingDash').style.display='none';console.error(e);}
+  }
+
+  function clearDashFilter(){
+    ['dashStart','dashEnd'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('dashRider').value='';
+    loadDashboard();
+  }
+
+  function renderDashboard(s) {
+    document.getElementById('statTotalCOD').textContent=fmtMoney(s.totalCOD);
+    document.getElementById('statTotalPkg').textContent=(s.totalPackages||0).toLocaleString('vi-VN');
+    document.getElementById('statTotalRec').textContent=(s.totalRecords||0).toLocaleString('vi-VN');
+
+    var maxR=s.byRider.length>0?s.byRider[0].amount:1;
+    document.getElementById('chartByRider').innerHTML=!s.byRider.length?'<div class="empty-state"><span class="icon">📊</span>Chưa có dữ liệu</div>':
+      '<div class="chart-bar-wrapper">'+s.byRider.map(r=>{
+        var pct=maxR>0?Math.max(4,Math.round(r.amount/maxR*100)):4;
+        return `<div class="chart-bar-row"><div class="chart-bar-label" title="${esc(r.rider)}">${esc(r.rider)}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${pct}%"></div></div><div class="chart-bar-val">${fmtMoney(r.amount)}</div></div>`;
+      }).join('')+'</div>';
+
+    var sorted=s.byDate.slice().sort((a,b)=>b.amount-a.amount);
+    var maxD=sorted.length>0?sorted[0].amount:1;
+    document.getElementById('chartByDate').innerHTML=!s.byDate.length?'<div class="empty-state"><span class="icon">📅</span>Chưa có dữ liệu</div>':
+      '<div class="chart-bar-wrapper">'+s.byDate.map(d=>{
+        var pct=maxD>0?Math.max(4,Math.round(d.amount/maxD*100)):4;
+        return `<div class="chart-bar-row"><div class="chart-bar-label">${d.date}</div><div class="chart-bar-track"><div class="chart-bar-fill green" style="width:${pct}%"></div></div><div class="chart-bar-val">${fmtMoney(d.amount)}</div></div>`;
+      }).join('')+'</div>';
+
+    document.getElementById('riderSummaryTable').innerHTML=!s.byRider.length?'<div class="empty-state"><span class="icon">📊</span>Chưa có dữ liệu</div>':(()=>{
+      var t='<table><thead><tr><th>Rider</th><th>Bản ghi</th><th>Tổng kiện</th><th>Tổng COD</th><th>TB/Bản ghi</th></tr></thead><tbody>';
+      s.byRider.forEach(r=>{t+=`<tr><td><span class="badge badge-blue">${esc(r.rider)}</span></td><td>${r.records}</td><td>${r.packages.toLocaleString('vi-VN')}</td><td class="amount-cell">${fmtMoney(r.amount)}</td><td>${fmtMoney(r.records>0?Math.round(r.amount/r.records):0)}</td></tr>`;});
+      return t+'</tbody></table>';
+    })();
+  }
+
+  document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+</script>
+</body>
+</html>
